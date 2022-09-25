@@ -12,10 +12,9 @@ pygame.display.set_caption('小朋友下樓梯')  # 設定視窗名稱
 pygame.mixer.init()
 screen = pygame.display.set_mode((width, height))  # 設定螢幕長寬
 FPS = 100  # 設定幀數
-running = True
+running = [True]
 head_font = pygame.font.SysFont(None, 60)  # 設定大小60的標題框框
-#text_surface = head_font.render('B%04dF' % CountF, True, (121, 255, 121))  # 設定標題的字跟顏色
-#screen.blit(text_surface, (300, 25))  # 讓標題印在畫布300,25的地方
+
     # 5 - clear the screen before drawing it again
     # screen.fill((0, 0, 0))
     # 6 - draw the screen elements
@@ -25,7 +24,8 @@ RectFlag = 0
 HPJudge = [True]
 keys = [False, False, False, False]  # 設定上下左右判定的list
 CountF = 0  # 設定往下樓層的變數
-walk_count = 0
+walk_count = [0]
+gravity = [True]
 Xlist = []  # 紀錄每個X值
 Ylist = []  # 紀錄每個y值
 count = 0  # 刷新板子亂數
@@ -34,8 +34,11 @@ count2 = 0
 
 
 
-player_data={'hp':10,'x' :240,'y' :120,'img': player_img, 'vel':0.2}
+player_data={'hp':10,'x' :240,'y' :120,'img': player_img, 'vel':0.5}
 
+hp_bar = {0: life0_img, 1: life1_img, 2: life2_img, 3: life3_img,
+          4: life4_img, 5: life6_img, 6: life6_img, 7: life7_img,
+          8: life8_img, 9: life9_img, 10:life10_img}
 
 
 class Player:
@@ -47,7 +50,7 @@ class Player:
         self.vel =player_data['vel']
 
     def move(self):
-        global walk_count #因為我要讓這個值一直存活 而且不要重製 要永遠記錄這個值
+        #global walk_count #因為我要讓這個值一直存活 而且不要重製 要永遠記錄這個值
 
         key_p = pygame.key.get_pressed()#判定我按的按鍵
         if (key_p[pygame.K_LEFT]):
@@ -55,15 +58,15 @@ class Player:
             keys[3] = False
             if keys[2]== True:
                 self.x -= self.vel
-                self.img = walk_left_img_list[walk_count % 2]
-                walk_count += 1
+                self.img = walk_left_img_list[walk_count[0] % 2]
+                walk_count[0] += 1
 
         elif (key_p[pygame.K_RIGHT]):
             keys[3] = True
             keys[2] = False
             self.x += self.vel
-            self.img = walk_right_img_list[walk_count % 2]
-            walk_count += 1
+            self.img = walk_right_img_list[walk_count[0] % 2]
+            walk_count[0] += 1
 
         else:
             keys[2] = False
@@ -81,24 +84,56 @@ class Game():
 
     def run_game(self):
 
-        while (running):
+        print('結束遊戲請按 Q')
+        while (running[0]):#running[0]是True [1]是False
 
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:  # 如果有按到離開視窗則停止執行while 就會執行到關閉
-                    run = False
+                if event.type == KEYDOWN:  # 如果有按到離開視窗則停止執行while 就會執行到關閉
+                    if str(event.key) =='113':
+                        print('結束遊戲')
+                        running[0] =False
             player1.move()
             self.set_game_env()
 
 
-            #screen.blit(player1.img, (player1.X, player1.Y))
-            #walkCount = player.player_move(walkCount, player1)
         pygame.quit()
 
     def set_game_env(self):
+
+        def build_wall():
+            for x in range(80, 700, 100):  # 設定牆壁 以及生命值
+                screen.blit(wall_img, (0, x))
+                screen.blit(wall_img, (460, x))
+
+        def build_ceil():
+            screen.blit(ceil_img, (20, 80))
+            screen.blit(ceil_img, (55, 80))
+
+        def build_player():
+            screen.blit(player1.img, (player1.x, player1.y))
+
+        def build_floor_label():
+            head_font = pygame.font.SysFont(None, 60)  # 設定大小60的標題框框
+            text_surface = head_font.render('B%04dF'%CountF, True, (121, 255, 121))  # 設定標題的字跟顏色
+            screen.blit(text_surface, (300, 25))  # 讓標題印在畫布300,25的地方
+        def build_hp_bar():
+            screen.blit(hp_bar[player1.hp], (10, 0))
+
+        def build_gravity(player1):#建造地心引力
+            player1.y += 0.5
+
         screen.fill((0, 0, 0))  # 把畫布塗黑
-        screen.blit(player1.img, (player1.x, player1.y))
-        pygame.display.update()
+        build_player()#創造角色
+        build_wall()#建造牆壁
+        build_ceil()#建造陷阱
+        build_floor_label()#建造樓層標題
+        build_hp_bar()#建造血條
+        if gravity[0]:#地心引力判定 若碰到板子就取消
+            build_gravity(player1)#建造地心引力
+
+        pygame.display.update()#刷新畫面
+
 
 
 def main():
