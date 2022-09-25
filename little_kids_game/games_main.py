@@ -3,7 +3,12 @@ from pygame.locals import *
 import time
 import random
 from playsound import playsound
+from abc import ABC
+
+
+from little_kids_game.platform.platform_struct import Platform
 from __init__ import*
+
 
 
 width, height = 480, 640  # 把螢幕長寬
@@ -12,12 +17,8 @@ pygame.display.set_caption('小朋友下樓梯')  # 設定視窗名稱
 pygame.mixer.init()
 screen = pygame.display.set_mode((width, height))  # 設定螢幕長寬
 FPS = 100  # 設定幀數
-running = [True]
-head_font = pygame.font.SysFont(None, 60)  # 設定大小60的標題框框
 
-    # 5 - clear the screen before drawing it again
-    # screen.fill((0, 0, 0))
-    # 6 - draw the screen elements
+running = [True]
 
 RectFlag = 0
 
@@ -26,19 +27,17 @@ keys = [False, False, False, False]  # 設定上下左右判定的list
 CountF = 0  # 設定往下樓層的變數
 walk_count = [0]
 gravity = [True]
-Xlist = []  # 紀錄每個X值
-Ylist = []  # 紀錄每個y值
-count = 0  # 刷新板子亂數
-count2 = 0
 
 
 
 
 player_data={'hp':10,'x' :240,'y' :120,'img': player_img, 'vel':0.5}
 
+
 hp_bar = {0: life0_img, 1: life1_img, 2: life2_img, 3: life3_img,
           4: life4_img, 5: life6_img, 6: life6_img, 7: life7_img,
           8: life8_img, 9: life9_img, 10:life10_img}
+
 
 
 class Player:
@@ -48,9 +47,10 @@ class Player:
         self.y  = player_data['y']
         self.img= player_data['img']
         self.vel =player_data['vel']
+        self.width = 31
+        self.height = 31
 
     def move(self):
-        #global walk_count #因為我要讓這個值一直存活 而且不要重製 要永遠記錄這個值
 
         key_p = pygame.key.get_pressed()#判定我按的按鍵
         if (key_p[pygame.K_LEFT]):
@@ -71,12 +71,80 @@ class Player:
         else:
             keys[2] = False
             keys[3] = False
-            self.img = self.img
+            self.img = player_data['img']
+
+class Board (Platform):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.img = board_pf_img
+        self.width =  95
+        self.height = 1
+
+    def stop_player_fall(self, player1):
+        player1.y -=1
+    def float(self):
+        self.y -= 0.5
+        if self.y < 100 or self.y > 1240:
+            self.x = random.randint(114, 366)
+            self.y = random.randint(740, 1240)
+    def rect_collision(self, player1): #創造兩物之間的碰撞
+
+        platform_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        player_rect = pygame.Rect(player1.x, player1.y, player1.width, player1.height)
+        if (pygame.Rect.colliderect(platform_rect, player_rect) == 1):
+            print('碰到了')
+            self.stop_player_fall(player1)
+
+
+class set_game_env():
+
+    def build_wall(self):
+        for x in range(80, 700, 100):  # 設定牆壁 以及生命值
+            screen.blit(wall_img, (0, x))
+            screen.blit(wall_img, (460, x))
+
+    def build_ceil(self):
+        screen.blit(ceil_img, (20, 80))
+        screen.blit(ceil_img, (55, 80))
+
+    def build_player(self):
+        screen.blit(player1.img, (player1.x, player1.y))
+
+    def build_floor_label(self):
+        head_font = pygame.font.SysFont(None, 60)  # 設定大小60的標題框框
+        text_surface = head_font.render('B%04dF'%CountF, True, (121, 255, 121))  # 設定標題的字跟顏色
+        screen.blit(text_surface, (300, 25))  # 讓標題印在畫布300,25的地方
+    def build_hp_bar(self):
+        screen.blit(hp_bar[player1.hp], (10, 0))
+
+    def build_gravity(self, player1):#建造地心引力
+        player1.y += 0.5
+    def build_platform(self):
+        screen.blit(board1.img, (board1.x, board1.y))
+        board1.float()
+        board1.rect_collision(player1)
+
+
+    def bulid_env(self,player1, board1):
+        screen.fill((0, 0, 0))  # 把畫布塗黑
+        self.build_player()#創造角色
+        self.build_wall()#建造牆壁
+        self.build_ceil()#建造陷阱
+        self.build_floor_label()#建造樓層標題
+        self.build_hp_bar()#建造血條
+        self.build_gravity(player1)#建造地心引力
+        self.build_platform()#建造平台
+        print(f'角色座標(x:{player1.x} y:{player1.y}')
+        pygame.display.update()#刷新畫面
+
+
+
 
 
 player1 = Player(player_data)  # 宣告P1玩家是player class
-
-
+board1   = Board(240, 600)
+env1    = set_game_env()
 class Game():
     def __init__(self):
         self.floor = 0
@@ -94,45 +162,11 @@ class Game():
                         print('結束遊戲')
                         running[0] =False
             player1.move()
-            self.set_game_env()
+            env1.bulid_env(player1, board1)
 
 
         pygame.quit()
 
-    def set_game_env(self):
-
-        def build_wall():
-            for x in range(80, 700, 100):  # 設定牆壁 以及生命值
-                screen.blit(wall_img, (0, x))
-                screen.blit(wall_img, (460, x))
-
-        def build_ceil():
-            screen.blit(ceil_img, (20, 80))
-            screen.blit(ceil_img, (55, 80))
-
-        def build_player():
-            screen.blit(player1.img, (player1.x, player1.y))
-
-        def build_floor_label():
-            head_font = pygame.font.SysFont(None, 60)  # 設定大小60的標題框框
-            text_surface = head_font.render('B%04dF'%CountF, True, (121, 255, 121))  # 設定標題的字跟顏色
-            screen.blit(text_surface, (300, 25))  # 讓標題印在畫布300,25的地方
-        def build_hp_bar():
-            screen.blit(hp_bar[player1.hp], (10, 0))
-
-        def build_gravity(player1):#建造地心引力
-            player1.y += 0.5
-
-        screen.fill((0, 0, 0))  # 把畫布塗黑
-        build_player()#創造角色
-        build_wall()#建造牆壁
-        build_ceil()#建造陷阱
-        build_floor_label()#建造樓層標題
-        build_hp_bar()#建造血條
-        if gravity[0]:#地心引力判定 若碰到板子就取消
-            build_gravity(player1)#建造地心引力
-
-        pygame.display.update()#刷新畫面
 
 
 
