@@ -16,13 +16,14 @@ pygame.init()
 pygame.display.set_caption('小朋友下樓梯')  # 設定視窗名稱
 pygame.mixer.init()
 screen = pygame.display.set_mode((width, height))  # 設定螢幕長寬
-FPS = 100  # 設定幀數
+FPS = 60  # 設定幀數
 
 running = [True]
 
 RectFlag = 0
 #drop_distance = 0
 dmg_judge = [True]
+
 keys = [False, False, False, False]  # 設定上下左右判定的list
 #count_floor = 0  # 設定往下樓層的變數
 walk_count = [0]
@@ -80,6 +81,8 @@ class Board (Platform):
         self.img = board_pf_img
         self.width =  95
         self.height = 1
+        self.cure = 1
+        self.cure_judge = True
 
     def stop_player_fall(self, player1):
         player1.y -=1
@@ -90,6 +93,7 @@ class Board (Platform):
             self.y = random.randint(740, 1240)
     def rect_collision(self, player1): #創造兩物之間的碰撞
         #上下的碰撞
+
         platform_rect_up = pygame.Rect(self.x, self.y, self.width, self.height)
         player_rect = pygame.Rect(player1.x, player1.y, player1.width, player1.height)
         platform_rect_left = pygame.Rect(self.x, self.y+5, 1, 25)
@@ -97,6 +101,14 @@ class Board (Platform):
 
         if (pygame.Rect.colliderect(platform_rect_up, player_rect) == 1):
             self.stop_player_fall(player1)
+            #print(self.cure_judge, player1.hp)
+            if player1.hp < 10 and self.cure_judge:
+
+                player1.hp += self.cure
+                self.cure_judge = False# 補過血馬上關閉 否則站在上面會一直補血
+
+        else:
+            self.cure_judge = True
 
         if (pygame.Rect.colliderect(platform_rect_left, player_rect) == 1):
             player1.x -= player1.vel
@@ -105,8 +117,41 @@ class Board (Platform):
             player1.x += player1.vel
             player1.y += 0.1
         #左右的碰撞
+class Nails (Board):
+    def __init__(self,x ,y):
+        self.x = x
+        self.y = y
+        self.img = nails_pf_img
+        self.width = 95
+        self.height = 1
+        self.cure = -2
+        self.cure_judge = True
 
+    def rect_collision(self, player1): #創造兩物之間的碰撞
+        #上下的碰撞
 
+        platform_rect_up = pygame.Rect(self.x, self.y, self.width, self.height)
+        player_rect = pygame.Rect(player1.x, player1.y, player1.width, player1.height)
+        platform_rect_left = pygame.Rect(self.x, self.y+5, 1, 25)
+        platform_rect_right = pygame.Rect(self.x+95, self.y+5, 1, 25)
+
+        if (pygame.Rect.colliderect(platform_rect_up, player_rect) == 1):
+            self.stop_player_fall(player1)
+            #print(self.self.dmg_judge, player1.hp)
+            if self.cure_judge:
+
+                player1.hp += self.cure
+                self.cure_judge = False# 補過血馬上關閉 否則站在上面會一直補血
+
+        else:
+            self.cure_judge = True
+
+        if (pygame.Rect.colliderect(platform_rect_left, player_rect) == 1):
+            player1.x -= player1.vel
+            player1.y += 0.1
+        elif (pygame.Rect.colliderect(platform_rect_right, player_rect) == 1):
+            player1.x += player1.vel
+            player1.y += 0.1
 
 class Wall ():
     def __init__(self, x, y):
@@ -136,6 +181,7 @@ class set_game_env():
     def __init__(self):
         self.count_floor= 0
         self.drop_distance=0
+        self.time = 0
     def build_wall(self):
         for x in range(80, 700, 100):  # 設定牆壁
             screen.blit(wall1.img, (0, x))
@@ -155,7 +201,7 @@ class set_game_env():
         if wc1_rect or wc2_rect:
             player1.y += 35
             if dmg_judge[0]:#傷害判定
-                player1.hp -=2
+                player1.hp -= wall_ceil1.dmg
                 print('扣血了')
                 dmg_judge[0] =False#為了不重複扣血 扣血後先把傷害鎖起來
         else:#離開尖刺後把傷害判定重新打開
@@ -168,29 +214,39 @@ class set_game_env():
         text_surface = head_font.render('B%04dF'% self.count_floor, True, (121, 255, 121))  # 設定標題的字跟顏色
         screen.blit(text_surface, (300, 25))  # 讓標題印在畫布300,25的地方
     def build_hp_bar(self, player1):
-        if player1.hp>=0:
+        if player1.hp > 0:
             screen.blit(hp_bar[player1.hp], (10, 0))
-        elif player1.hp<0:
+        elif player1.hp <= 0:
             screen.blit(hp_bar[0], (10, 0))
     def build_gravity(self, player1):#建造地心引力
         player1.y += 0.5
         self.drop_distance += 0.5
 
     def build_platform(self):
+        board_list =[board1, board2, board3, nails1]
+        board_tmp_y =0#紀錄上一片板子的y
 
         def build(platform):
             screen.blit(platform.img, (platform.x, platform.y))
             platform.float()
             platform.rect_collision(player1)
 
-        build(board1)
-        build(board2)
-        build(board3)
+        for board in board_list:#檢查兩塊板子中間有沒有靠太近
+            if board_tmp_y == 0 :
+                board_tmp_y = board.y
+            elif (board.y - board_tmp_y) **2 < 1400:#如果間隔太近
+                board.y += 50
+                board_tmp_y = board.y
+            build(board)
 
     def count_f(self):
         if self.drop_distance > 500:
             self.count_floor += 1
             self.drop_distance = 0
+
+    def set_time(self):
+        self.time = pygame.time.get_ticks()
+
     def bulid_env(self,player1, board1):
         screen.fill((0, 0, 0))  # 把畫布塗黑
         self.build_player()#創造角色
@@ -199,11 +255,15 @@ class set_game_env():
         self.build_floor_label()#建造樓層標題
         self.build_hp_bar(player1)#建造血條
         self.build_gravity(player1)#建造地心引力 順便紀錄下降距離
-        print(f'下降距離:{self.drop_distance}')
+        #print(f'下降距離:{self.drop_distance}')
         self.count_f()
         self.build_platform()#建造平台
-        print(f'角色座標(x:{player1.x} y:{player1.y}')
+        self.set_time()
+        #print(f'角色座標(x:{player1.x} y:{player1.y}')
         pygame.display.update()#刷新畫面
+
+
+
 
 
 def random_x():
@@ -219,6 +279,7 @@ player1 = Player(player_data)  # 宣告P1玩家是player class
 board1   = Board(240, 600)
 board2   = Board(random_x(), random_y())
 board3   = Board(random_x(), random_y())
+nails1    = Nails (random_x(), random_y())
 wall1    = Wall(0, 80)
 wall2    = Wall(450, 80)
 wall_ceil1 = WallCeil(20, 80)
@@ -232,22 +293,27 @@ class Game():
     def run_game(self):
 
         print('結束遊戲請按 Q')
-        while (running[0]):#running[0]是True [1]是False
-
+        while (running[0]):#running 是True
 
             for event in pygame.event.get():
                 if event.type == KEYDOWN:  # 如果有按到離開視窗則停止執行while 就會執行到關閉
-                    if str(event.key) =='113':
+                    if str(event.key) =='113':#如果按到Q 就結束
                         print('結束遊戲')
                         running[0] =False
+
             player1.move()
             env1.bulid_env(player1, board1)
-
+            self.game_over()
 
         pygame.quit()
 
-
-
+    def game_over(self):
+        if player1.hp <=0:
+            playsound('../assets/sounds/Stabbed Scream.mp3', block=True)
+            running[0] = False
+        elif player1.y > 640:
+            playsound('../assets/sounds/Fall 2.mp3', block=True)
+            running[0] = False
 
 def main():
     Game().run_game()
