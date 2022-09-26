@@ -31,7 +31,7 @@ RectFlag = 0
 #drop_distance = 0
 dmg_judge = [True]
 
-keys = [False, False, False, False]  # 設定上下左右判定的list
+keys = [False, False]  # 設定上下左右判定的list
 #count_floor = 0  # 設定往下樓層的變數
 walk_count = [0]
 gravity = [True]
@@ -62,23 +62,24 @@ class Player:
 
         key_p = pygame.key.get_pressed()#判定我按的按鍵
         if (key_p[pygame.K_LEFT]):
-            keys[2] = True
-            keys[3] = False
-            if keys[2]== True:
+            keys[0] = True
+            keys[1] = False
+            if keys[0]== True:
                 self.x -= self.vel
                 self.img = walk_left_img_list[walk_count[0] % 2]
                 walk_count[0] += 1
 
         elif (key_p[pygame.K_RIGHT]):
-            keys[3] = True
-            keys[2] = False
-            self.x += self.vel
-            self.img = walk_right_img_list[walk_count[0] % 2]
-            walk_count[0] += 1
+            keys[1] = True
+            keys[0] = False
+            if keys[1] == True:
+                self.x += self.vel
+                self.img = walk_right_img_list[walk_count[0] % 2]
+                walk_count[0] += 1
 
         else:
-            keys[2] = False
-            keys[3] = False
+            keys[0] = False
+            keys[1] = False
             self.img = player_data['img']
 
 
@@ -109,7 +110,7 @@ class set_game_env():
             player1.y += 35
             if dmg_judge[0]:#傷害判定
                 player1.hp -= wall_ceil1.dmg
-                print('扣血了')
+
                 dmg_judge[0] =False#為了不重複扣血 扣血後先把傷害鎖起來
         else:#離開尖刺後把傷害判定重新打開
             dmg_judge[0]= True

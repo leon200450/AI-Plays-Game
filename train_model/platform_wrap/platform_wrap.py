@@ -28,9 +28,9 @@ class Board (Platform):
         self.cure_judge = True
 
     def stop_player_fall(self, player1):
-        player1.y -=1
+        player1.y -=2
     def float(self):
-        self.y -= 0.5
+        self.y -= 1.5
         if self.y < 100 or self.y > 1240:
             self.x = random.randint(114, 366)
             self.y = random.randint(740, 1240)
