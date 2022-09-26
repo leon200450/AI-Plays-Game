@@ -222,7 +222,7 @@ class ConveyorRight (ConveyorLeft):
         self.cure = 1
         self.cure_judge = True
         self.direction = 0.25
-
+'''
 class set_game_env():
     def __init__(self):
         self.count_floor= 0
@@ -312,55 +312,146 @@ class set_game_env():
         #print(f'角色座標(x:{player1.x} y:{player1.y}')
         pygame.display.update()#刷新畫面
 
+'''
 
 
 
 
-def random_x():
-    x = random.randint(114, 366)
-    return x
-def random_board_y():
-    y = random.randint(740, 3540)
-    return y
-def random_conveyor_y():
-    y = random.randint(5500, 17040)#不同板子有不同的生成時間
-    return y
 
 
-player1 = Player(player_data)  # 宣告P1玩家是player class
-board1   = Board(240, 600)
 
-board3   = Board(random_x(), random_board_y())
-nails1    = Nails (random_x(), random_board_y())
-wall1    = Wall(0, 80)
-wall2    = Wall(450, 80)
-wall_ceil1 = WallCeil(20, 80)
-wall_ceil2 = WallCeil(55, 80)
-conveyor_left1 = ConveyorLeft(random_x(),random_conveyor_y())
-board2   = Board(random_x(), random_board_y())
-conveyor_right1 = ConveyorRight(random_x(),random_conveyor_y())
-env1    = set_game_env()
 
 
 class Game():
     def __init__(self):
         self.floor = 0
+        self.player1 = Player(player_data)  # 宣告P1玩家是player class
+        self.board1 = Board(240, 600)
+
+        self.board3 = Board(self.random_x(), self.random_board_y())
+        self.nails1 = Nails(self.random_x(), self.random_board_y())
+        self.wall1 = Wall(0, 80)
+        self.wall2 = Wall(450, 80)
+        self.wall_ceil1 = WallCeil(20, 80)
+        self.wall_ceil2 = WallCeil(55, 80)
+        self.conveyor_left1 = ConveyorLeft(self.random_x(), self.random_conveyor_y())
+        self.board2 = Board(self.random_x(), self.random_board_y())
+        self.conveyor_right1 = ConveyorRight(self.random_x(), self.random_conveyor_y())
+        self.count_floor = 0
+        self.drop_distance = 0
+        self.time = 0
+
 
     def run_game(self):
 
-        env1.bulid_env(player1, board1)
+        self.bulid_env(self.player1, self.board1)
         self.game_over()
 
     def game_over(self):
 
-        if player1.hp <= 0:
+        if self.player1.hp <= 0:
             playsound('../assets/sounds/Stabbed Scream.mp3', block=True)
+            self.__init__()#死了初始化環境
 
-
-        elif player1.y > 640:
+        elif self.player1.y > 640:
             playsound('../assets/sounds/Fall 2.mp3', block=True)
+            self.__init__()
 
+    def random_x(self):
+        x = random.randint(114, 366)
+        return x
 
+    def random_board_y(self):
+        y = random.randint(740, 3540)
+        return y
+
+    def random_conveyor_y(self):
+        y = random.randint(5500, 17040)  # 不同板子有不同的生成時間
+        return y
+
+    def build_wall(self):
+        for x in range(80, 700, 100):  # 設定牆壁
+            screen.blit(self.wall1.img, (0, x))
+            screen.blit(self.wall2.img, (460, x))
+        w1_rect =self.wall1.rect_collision(self.player1)#左牆
+        w2_rect =self.wall2.rect_collision(self.player1)#右牆
+        if w1_rect:
+            self.player1.x += self.player1.vel
+        if w2_rect:
+            self.player1.x -= self.player1.vel
+
+    def build_ceil(self):
+        screen.blit(self.wall_ceil1.img, (20, 80))
+        screen.blit(self.wall_ceil2.img, (55, 80))
+        wc1_rect =self.wall_ceil1.rect_collision(self.player1)
+        wc2_rect =self.wall_ceil2.rect_collision(self.player1)
+        if wc1_rect or wc2_rect:
+            self.player1.y += 35
+            if dmg_judge[0]:#傷害判定
+                self.player1.hp -= self.wall_ceil1.dmg
+
+                dmg_judge[0] =False#為了不重複扣血 扣血後先把傷害鎖起來
+        else:#離開尖刺後把傷害判定重新打開
+            dmg_judge[0]= True
+    def build_player(self):
+        screen.blit(self.player1.img, (self.player1.x, self.player1.y))
+
+    def build_floor_label(self):
+        head_font = pygame.font.SysFont(None, 60)  # 設定大小60的標題框框
+        text_surface = head_font.render('B%04dF'% self.count_floor, True, (121, 255, 121))  # 設定標題的字跟顏色
+        screen.blit(text_surface, (300, 25))  # 讓標題印在畫布300,25的地方
+    def build_hp_bar(self, player1):
+        if player1.hp > 0:
+            screen.blit(hp_bar[player1.hp], (10, 0))
+        elif player1.hp <= 0:
+            screen.blit(hp_bar[0], (10, 0))
+    def build_gravity(self, player1):#建造地心引力
+        player1.y += 0.5
+        self.drop_distance += 0.5
+
+    def build_platform(self):
+        board_list =[self.board1, self.conveyor_right1, self.board2, self.nails1,self.conveyor_left1]
+        board_tmp_y =0#紀錄上一片板子的y
+
+        def build(platform):
+            screen.blit(platform.img, (platform.x, platform.y))
+            platform.float()
+            platform.rect_collision(self.player1)
+
+        for board in board_list:#檢查兩塊板子中間有沒有靠太近
+            if board_tmp_y == 0 :
+                board_tmp_y = board.y
+            else:
+                if(board_tmp_y > board.y and board_tmp_y - board.y < 20):#如果間隔太近
+                    board.y -= 100
+                    board_tmp_y = board.y
+                elif(board_tmp_y <= board.y and board.y - board_tmp_y < 20):
+                    board.y += 100
+                    board_tmp_y = board.y
+            build(board)
+
+    def count_f(self):
+        if self.drop_distance > 500:
+            self.count_floor += 1
+            self.drop_distance = 0
+
+    def set_time(self):
+        self.time = pygame.time.get_ticks()
+
+    def bulid_env(self,player1, board1):
+        screen.fill((0, 0, 0))  # 把畫布塗黑
+        self.build_player()#創造角色
+        self.build_wall()#建造牆壁
+        self.build_ceil()#建造陷阱
+        self.build_floor_label()#建造樓層標題
+        self.build_hp_bar(player1)#建造血條
+        self.build_gravity(player1)#建造地心引力 順便紀錄下降距離
+        #print(f'下降距離:{self.drop_distance}')
+        self.count_f()
+        self.build_platform()#建造平台
+        self.set_time()
+        #print(f'角色座標(x:{player1.x} y:{player1.y}')
+        pygame.display.update()#刷新畫面
 
 
     def frame_step(self, input_actions):
@@ -375,17 +466,17 @@ class Game():
         # input_actions[1] == 1: left
         # input_actions[2] == 1: right
         if input_actions[1] == 1:
-            player1.x -= player1.vel
-            player1.img = walk_left_img_list[walk_count[0] % 2]
+            self.player1.x -= self.player1.vel
+            self.player1.img = walk_left_img_list[walk_count[0] % 2]
             walk_count[0] += 1
 
         elif input_actions[2] == 1:
-            player1.x += player1.vel
-            player1.img = walk_right_img_list[walk_count[0] % 2]
+            self.player1.x += self.player1.vel
+            self.player1.img = walk_right_img_list[walk_count[0] % 2]
             walk_count[0] += 1
 
         else:
-            player1.img = player_data['img']
+            self.player1.img = player_data['img']
 
         self.run_game()
 
