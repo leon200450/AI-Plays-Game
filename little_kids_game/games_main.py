@@ -7,6 +7,13 @@ from abc import ABC
 
 
 from little_kids_game.platform.platform_struct import Platform
+from little_kids_game.platform.platform_struct import Board
+from little_kids_game.platform.platform_struct import Nails
+from little_kids_game.platform.platform_struct  import ConveyorLeft
+from little_kids_game.platform.platform_struct  import ConveyorRight
+from little_kids_game.wall.wall_struct  import Wall
+from little_kids_game.wall.wall_struct  import WallCeil
+
 from __init__ import*
 
 
@@ -74,107 +81,7 @@ class Player:
             keys[3] = False
             self.img = player_data['img']
 
-class Board (Platform):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.img = board_pf_img
-        self.width =  95
-        self.height = 1
-        self.cure = 1
-        self.cure_judge = True
 
-    def stop_player_fall(self, player1):
-        player1.y -=1
-    def float(self):
-        self.y -= 0.5
-        if self.y < 100 or self.y > 1240:
-            self.x = random.randint(114, 366)
-            self.y = random.randint(740, 1240)
-    def rect_collision(self, player1): #創造兩物之間的碰撞
-        #上下的碰撞
-
-        platform_rect_up = pygame.Rect(self.x, self.y, self.width, self.height)
-        player_rect = pygame.Rect(player1.x, player1.y, player1.width, player1.height)
-        platform_rect_left = pygame.Rect(self.x, self.y+5, 1, 25)
-        platform_rect_right = pygame.Rect(self.x+95, self.y+5, 1, 25)
-
-        if (pygame.Rect.colliderect(platform_rect_up, player_rect) == 1):
-            self.stop_player_fall(player1)
-            #print(self.cure_judge, player1.hp)
-            if player1.hp < 10 and self.cure_judge:
-
-                player1.hp += self.cure
-                self.cure_judge = False# 補過血馬上關閉 否則站在上面會一直補血
-
-        else:
-            self.cure_judge = True
-
-        if (pygame.Rect.colliderect(platform_rect_left, player_rect) == 1):
-            player1.x -= player1.vel
-            player1.y += 0.1
-        elif (pygame.Rect.colliderect(platform_rect_right, player_rect) == 1):
-            player1.x += player1.vel
-            player1.y += 0.1
-        #左右的碰撞
-class Nails (Board):
-    def __init__(self,x ,y):
-        self.x = x
-        self.y = y
-        self.img = nails_pf_img
-        self.width = 95
-        self.height = 1
-        self.cure = -2
-        self.cure_judge = True
-
-    def rect_collision(self, player1): #創造兩物之間的碰撞
-        #上下的碰撞
-
-        platform_rect_up = pygame.Rect(self.x, self.y, self.width, self.height)
-        player_rect = pygame.Rect(player1.x, player1.y, player1.width, player1.height)
-        platform_rect_left = pygame.Rect(self.x, self.y+5, 1, 25)
-        platform_rect_right = pygame.Rect(self.x+95, self.y+5, 1, 25)
-
-        if (pygame.Rect.colliderect(platform_rect_up, player_rect) == 1):
-            self.stop_player_fall(player1)
-            #print(self.self.dmg_judge, player1.hp)
-            if self.cure_judge:
-
-                player1.hp += self.cure
-                self.cure_judge = False# 補過血馬上關閉 否則站在上面會一直補血
-
-        else:
-            self.cure_judge = True
-
-        if (pygame.Rect.colliderect(platform_rect_left, player_rect) == 1):
-            player1.x -= player1.vel
-            player1.y += 0.1
-        elif (pygame.Rect.colliderect(platform_rect_right, player_rect) == 1):
-            player1.x += player1.vel
-            player1.y += 0.1
-
-class Wall ():
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.img = wall_img
-        self.width =  15
-        self.height = 560
-    def rect_collision(self, player1):  # 創造兩物之間的碰撞
-
-        platform_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        player_rect = pygame.Rect(player1.x, player1.y, player1.width, player1.height)
-        if (pygame.Rect.colliderect(platform_rect, player_rect) == 1):
-            return 1 #若碰撞到回傳1
-
-class WallCeil (Wall):
-    def __init__(self,x, y):
-        self.x = x
-        self.y = y
-        self.dmg = 2
-        self.img = ceil_img
-        self.width =  480
-        self.height = 32
 
 
 class set_game_env():
@@ -223,7 +130,7 @@ class set_game_env():
         self.drop_distance += 0.5
 
     def build_platform(self):
-        board_list =[board1, board2, board3, nails1]
+        board_list =[board1, conveyor_right1, board2, nails1,conveyor_left1]
         board_tmp_y =0#紀錄上一片板子的y
 
         def build(platform):
@@ -234,9 +141,13 @@ class set_game_env():
         for board in board_list:#檢查兩塊板子中間有沒有靠太近
             if board_tmp_y == 0 :
                 board_tmp_y = board.y
-            elif (board.y - board_tmp_y) **2 < 1400:#如果間隔太近
-                board.y += 50
-                board_tmp_y = board.y
+            else:
+                if(board_tmp_y > board.y and board_tmp_y - board.y < 20):#如果間隔太近
+                    board.y -= 100
+                    board_tmp_y = board.y
+                elif(board_tmp_y <= board.y and board.y - board_tmp_y < 20):
+                    board.y += 100
+                    board_tmp_y = board.y
             build(board)
 
     def count_f(self):
@@ -269,21 +180,26 @@ class set_game_env():
 def random_x():
     x = random.randint(114, 366)
     return x
-def random_y():
-    y = random.randint(740, 1240)
+def random_board_y():
+    y = random.randint(740, 3540)
     return y
-
+def random_conveyor_y():
+    y = random.randint(5500, 17040)#不同板子有不同的生成時間
+    return y
 
 
 player1 = Player(player_data)  # 宣告P1玩家是player class
 board1   = Board(240, 600)
-board2   = Board(random_x(), random_y())
-board3   = Board(random_x(), random_y())
-nails1    = Nails (random_x(), random_y())
+
+board3   = Board(random_x(), random_board_y())
+nails1    = Nails (random_x(), random_board_y())
 wall1    = Wall(0, 80)
 wall2    = Wall(450, 80)
 wall_ceil1 = WallCeil(20, 80)
 wall_ceil2 = WallCeil(55, 80)
+conveyor_left1 = ConveyorLeft(random_x(),random_conveyor_y())
+board2   = Board(random_x(), random_board_y())
+conveyor_right1 = ConveyorRight(random_x(),random_conveyor_y())
 env1    = set_game_env()
 class Game():
     def __init__(self):

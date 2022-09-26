@@ -23,6 +23,7 @@ ceil_img= pygame.image.load('../assets/ceiling.png')
 TrampolineUP_img= pygame.image.load('../assets/trampolineUP.png')
 TrampolineDown_img= pygame.image.load('../assets/trampolineDown.png')
 conveyor_left_img= pygame.image.load('../assets/conveyor_left1.png')
+conveyor_left_img2= pygame.image.load('../assets/conveyor_left2.png')
 conveyor_right_img= pygame.image.load('../assets/conveyor_right1.png')
 
 walk_right_img_list = [pygame.image.load('../assets/playerR1.png'), pygame.image.load('../assets/playerR2.png')]
