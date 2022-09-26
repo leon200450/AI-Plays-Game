@@ -29,8 +29,8 @@ ACTIONS = 3 #三個動作 向左 向右 不動
 GAMMA = 0.99 #衰退值
 OBSERVE = 50000 #train幾T後存一次feature
 EXPLORE = 2000000#總共train幾T
-FINAL_EPSILON = 0.01
-INITIAL_EPSILON = 0.5
+FINAL_EPSILON = 0.0001
+INITIAL_EPSILON = 0.1
 REPLAY_MEMORY = 50000
 BATCH = 32
 
@@ -91,6 +91,7 @@ def network():
 def train():
     B = int(input('Press 0 if you want to train from start or 1 if you want to test : '))
     model = network()
+    max_floor = 0
     if B == 1:
         model.load_weights("trained_model/dqn2100000.h5")
     D = deque()
@@ -100,7 +101,8 @@ def train():
     dummy_a = np.zeros(ACTIONS)
     dummy_a[0] = 1
 
-    x_tc, r_t, T_t = game_state.frame_step(dummy_a)
+    x_tc, r_t, T_t , count_floor= game_state.frame_step(dummy_a)
+
     x_t = image_preprocess(x_tc)
     x_tt = x_t
     t = 0
@@ -127,7 +129,9 @@ def train():
         if epsilon > FINAL_EPSILON and t > OBSERVE:
             epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
 
-        x_tc, r_t, T_t = game_state.frame_step(a_t)
+        x_tc, r_t, T_t, count_floor= game_state.frame_step(a_t)
+        if count_floor >= max_floor:
+            max_floor = count_floor
 
         x_tn = image_preprocess(x_tc)
         D.append((x_tt, a_t, r_t, x_tn, T_t))  # Maintaining replay memory
@@ -167,7 +171,7 @@ def train():
                 # break
                 model.fit(x=[s_t_batch, a_batch, y_batch], y=y_batch, batch_size=32, verbose=0)
 
-        print("T:", t, "| EPS:", epsilon, "| A", action_index, "| R", r_t, "| Q ", Q_t)
+        print("T:", t, "| EPS:", epsilon, "| A", action_index, "| R", r_t, "| Q ", Q_t, '最高紀錄為:',count_floor,'F')
 
 
 def main():
